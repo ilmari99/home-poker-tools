@@ -4,22 +4,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="{% static 'css/styles.css' %}">
     <title>Poker Transactions Results</title>
 </head>
 <body>
-    <div class="container">
-        <h1>Results</h1>
-        <ul>
-            {% for transaction in transactions %}
-                <li>{{ transaction.from }} owes {{ transaction.to }} {{ transaction.amount_in_blinds }} blinds
-                    {% if transaction.amount_in_euros %}
-                        ({{ transaction.amount_in_euros }} euros)
-                    {% endif %}
-                </li>
-            {% endfor %}
-        </ul>
-        <a href="{% url 'index' %}">Go back</a>
+    <div class="container mt-5">
+        <div class="card">
+            <div class="card-header text-center">
+                <h1>Results</h1>
+            </div>
+            <div class="card-body">
+                <ul class="list-group">
+                    {% for transaction in transactions %}
+                        <li class="list-group-item">
+                            <strong>{{ transaction.from }}</strong> owes <strong>{{ transaction.to }}</strong> 
+                            <span class="badge badge-primary">{{ transaction.amount_in_blinds }} blinds</span>
+                            {% if transaction.amount_in_euros %}
+                                <span class="text-muted">({{ transaction.amount_in_euros }} euros)</span>
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            <div class="card-footer text-center">
+                <a href="{% url 'index' %}" class="btn btn-primary">Go back</a>
+            </div>
+        </div>
     </div>
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 </body>
 </html>

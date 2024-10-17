@@ -1,25 +1,9 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
+from django.urls import reverse
 from .forms import PokerTransactionForm
 
 def calculate_poker_transactions(start_blinds, end_blinds):
-    """
-    Calculate the transactions required to settle debts among poker players.
-    This function takes the starting and ending blinds for each player and 
-    calculates the transactions needed to balance the blinds among players.
-    Args:
-        start_blinds (list of int): The initial blinds for each player.
-        end_blinds (list of int): The final blinds for each player.
-    Returns:
-        list of tuple: A list of transactions where each transaction is 
-        represented as a tuple (debtor_index, creditor_index, amount). 
-        - debtor_index (int): The index of the player who owes blinds.
-        - creditor_index (int): The index of the player who is owed blinds.
-        - amount (int): The amount of blinds to be transferred.
-    Raises:
-        AssertionError: If the number of players in start_blinds and end_blinds 
-        are not the same, or if the total number of blinds in start_blinds and 
-        end_blinds are not equal.
-    """
+    # (The function remains unchanged)
     assert len(start_blinds) == len(end_blinds), "The number of players must be the same"
     assert sum(start_blinds) == sum(end_blinds), "The total number of blinds must be the same"
     
@@ -48,31 +32,41 @@ def index(request):
     if request.method == 'POST':
         form = PokerTransactionForm(request.POST)
         if form.is_valid():
-            start_blinds = [float(x) for x in form.cleaned_data['start_blinds'].split(',')]
+            bought_blinds = [float(x) for x in form.cleaned_data['bought_blinds'].split(',')]
             end_blinds = [float(x) for x in form.cleaned_data['end_blinds'].split(',')]
-            player_names = form.cleaned_data['player_names'].split(',') if form.cleaned_data['player_names'] else [f'Player{i}' for i in range(len(start_blinds))]
-            if len(player_names) != len(start_blinds):
+            player_names = form.cleaned_data['player_names'].split(',') if form.cleaned_data['player_names'] else [f'Player{i}' for i in range(len(bought_blinds))]
+            if len(player_names) != len(bought_blinds):
                 form.add_error(None, "The number of player names must match the number of blinds.")
                 return render(request, 'debt_setter/index.html', {'form': form})
             big_blind = form.cleaned_data['big_blind']
             
             try:
-                transactions = calculate_poker_transactions(start_blinds, end_blinds)
-                formatted_transactions = []
-                for debtor, creditor, amount in transactions:
-                    transaction = {
-                        "from": player_names[debtor],
-                        "to": player_names[creditor],
-                        "amount_in_blinds": amount
-                    }
-                    if big_blind:
-                        transaction["amount_in_euros"] = round(amount * float(big_blind),2)
-                    formatted_transactions.append(transaction)
-                
-                return render(request, 'debt_setter/results.html', {'transactions': formatted_transactions})
+                transactions = calculate_poker_transactions(bought_blinds, end_blinds)
+                request.session['transactions'] = transactions
+                request.session['player_names'] = player_names
+                request.session['big_blind'] = float(big_blind) if big_blind else None
+                return redirect(reverse('results'))
             except AssertionError as e:
                 form.add_error(None, str(e))
     else:
         form = PokerTransactionForm()
     
     return render(request, 'debt_setter/index.html', {'form': form})
+
+def results(request):
+    transactions = request.session.get('transactions', [])
+    player_names = request.session.get('player_names', [])
+    big_blind = request.session.get('big_blind', None)
+    
+    formatted_transactions = []
+    for debtor, creditor, amount in transactions:
+        transaction = {
+            "from": player_names[debtor],
+            "to": player_names[creditor],
+            "amount_in_blinds": amount
+        }
+        if big_blind:
+            transaction["amount_in_euros"] = round(amount * float(big_blind), 2)
+        formatted_transactions.append(transaction)
+    
+    return render(request, 'debt_setter/results.html', {'transactions': formatted_transactions})
